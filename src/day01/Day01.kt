@@ -1,3 +1,7 @@
+package day01
+
+import readInput
+
 fun main() {
 
     fun topCaloriesElf(input: List<String>): ElfWithCalories {
@@ -14,7 +18,7 @@ fun main() {
     }
 
     // test if implementation meets criteria from the description, like:
-    val testInput = readInput("Day01_test")
+    val testInput = readInput("/day01/Day01_test")
     val part1Test = topCaloriesElf(testInput)
     check(part1Test.elfId == 4)
     check(part1Test.sumCalories == 24000)
@@ -24,7 +28,7 @@ fun main() {
     check(topThreeCaloriesTest == 45000)
 
 
-    val input = readInput("Day01")
+    val input = readInput("/day01/Day01")
     println(topCaloriesElf(input))
     println(topThreeCalories(input))
 }
