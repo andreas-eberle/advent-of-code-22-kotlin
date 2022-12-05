@@ -13,7 +13,7 @@ fun main() {
         val mutableStacks = stacks.map { it.toMutableList() }
 
         moves.forEach { (times, from, to) ->
-            (0 until times).forEach { _ ->
+            repeat(times) {
                 val removed = mutableStacks[from - 1].removeFirst()
                 mutableStacks[to - 1].add(0, removed)
             }
