@@ -43,10 +43,3 @@ fun main() {
     check(part2TestPoints == 4)
 
 }
-
-
-fun Char.toPriority(): Int = when (this) {
-    in 'a'..'z' -> this - 'a' + 1
-    in 'A'..'Z' -> this - 'A' + 27
-    else -> error("Invalid char: $this")
-}
