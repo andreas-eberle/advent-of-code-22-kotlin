@@ -6,14 +6,13 @@ const val day = "06"
 
 fun main() {
 
-    fun calculatePart1Score(input: List<String>): List<Int?> {
-        return input.map { signal -> signal.findDistinctCharacters(4) }
+    fun calculatePart1Score(input: List<String>): List<Int> {
+        return input.map { signal -> signal.findEndOfMarkerIndex(4) }
     }
 
-    fun calculatePart2Score(input: List<String>): List<Int?> {
-        return input.map { signal -> signal.findDistinctCharacters(14) }
+    fun calculatePart2Score(input: List<String>): List<Int> {
+        return input.map { signal -> signal.findEndOfMarkerIndex(14) }
     }
-
 
     // test if implementation meets criteria from the description, like:
     val testInput = readInput("/day$day/Day${day}_test")
@@ -36,14 +35,5 @@ fun main() {
 
 }
 
-
-fun String.findDistinctCharacters(numCharacters: Int): Int? {
-    forEachIndexed { index, _ ->
-        if (index < numCharacters - 1) return@forEachIndexed
-
-        if (slice((index - numCharacters + 1)..index).toSet().size == numCharacters) {
-            return index + 1
-        }
-    }
-    return null
-}
+fun String.findEndOfMarkerIndex(numCharacters: Int): Int = windowedSequence(numCharacters)
+    .indexOfFirst { it.toSet().size == numCharacters } + numCharacters
