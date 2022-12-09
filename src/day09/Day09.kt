@@ -9,46 +9,13 @@ const val day = "09"
 fun main() {
 
     fun calculatePart1Score(input: List<String>): Int {
-        val moves = input.map { it.split(" ") }
-            .map { it[0] to it[1].toInt() }
-
-        var head = Coordinate(0, 0)
-        var tail = Coordinate(0, 0)
-
-        val visitedLocations = mutableSetOf(Coordinate(0, 0))
-
-        moves.forEach { move ->
-            repeat(move.second) {
-                head = head.applyMove(move.first)
-                tail = tail.follow(head)
-                visitedLocations.add(tail)
-            }
-        }
-
-        return visitedLocations.size
+        val states = input.executeMoves(2)
+        return states.countLastKnotPositions()
     }
-
-
+    
     fun calculatePart2Score(input: List<String>): Int {
-        val moves = input.map { it.split(" ") }
-            .map { it[0] to it[1].toInt() }
-
-        val coordinates = MutableList(10) { Coordinate(0, 0) }
-        val visitedLocations = mutableSetOf(Coordinate(0, 0))
-
-        moves.forEach { move ->
-            repeat(move.second) {
-                coordinates[0] = coordinates[0].applyMove(move.first)
-
-                for (index in 1 until coordinates.size) {
-                    coordinates[index] = coordinates[index].follow(coordinates[index - 1])
-                }
-
-                visitedLocations.add(coordinates.last())
-            }
-        }
-
-        return visitedLocations.size
+        val states = input.executeMoves(10)
+        return states.countLastKnotPositions()
     }
 
     // test if implementation meets criteria from the description, like:
@@ -72,6 +39,21 @@ fun main() {
     check(part2TestPoints == 36)
 
 }
+
+fun List<String>.executeMoves(numKnots: Int): List<List<Coordinate>> {
+    val moves = map { it.split(" ") }
+        .map { it[0] to it[1].toInt() }
+        .flatMap { move -> List(move.second) { move.first } }
+
+    val states = moves.runningFold(List(numKnots) { Coordinate(0, 0) }) { coordinates, move ->
+        coordinates.drop(1)
+            .runningFold(coordinates.first().applyMove(move)) { previous, current -> current.follow(previous) }
+    }
+
+    return states
+}
+
+fun List<List<Coordinate>>.countLastKnotPositions(): Int = map { it.last() }.toSet().size
 
 
 data class Coordinate(val x: Int, val y: Int) {
