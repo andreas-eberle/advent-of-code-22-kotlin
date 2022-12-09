@@ -12,7 +12,7 @@ fun main() {
         val states = input.executeMoves(2)
         return states.countLastKnotPositions()
     }
-    
+
     fun calculatePart2Score(input: List<String>): Int {
         val states = input.executeMoves(10)
         return states.countLastKnotPositions()
@@ -42,8 +42,7 @@ fun main() {
 
 fun List<String>.executeMoves(numKnots: Int): List<List<Coordinate>> {
     val moves = map { it.split(" ") }
-        .map { it[0] to it[1].toInt() }
-        .flatMap { move -> List(move.second) { move.first } }
+        .flatMap { (move, amount) -> List(amount.toInt()) { move } }
 
     val states = moves.runningFold(List(numKnots) { Coordinate(0, 0) }) { coordinates, move ->
         coordinates.drop(1)
