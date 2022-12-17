@@ -1,8 +1,6 @@
 package day16
 
 import readInput
-import java.util.*
-import kotlin.math.ceil
 
 const val day = "16"
 
@@ -28,59 +26,33 @@ data class Valve(val name: String, val rate: Int, var neighbors: List<Pair<Int, 
     }
 }
 
-data class Step(val pressureRelease: Int, val remainingTime: Int, val valve: Valve, val remainingValves: SortedSet<Valve>, val openIt: Boolean = false) {
-    val remainingMaxPossible = remainingValves.maxRemaining(remainingTime)
-    val maxPossiblePressure = pressureRelease + remainingMaxPossible
-}
-
-fun SortedSet<Valve>.maxRemaining(remainingTime: Int) =
-    take(ceil(remainingTime / 2.0).toInt())
-        .withIndex()
-        .sumOf { (idx, valve) -> (remainingTime - 2 * idx) * valve.rate }
-
 
 fun main() {
 
-    fun calculatePart1Score(input: List<String>): Int {
-        val maxTimeSteps = 30
+    fun findPathOne(currentValve: Valve, pressureRelease: Int, remainingTime: Int, remainingValves: Set<Valve>): Int {
+        val neighborPressures = currentValve.neighbors
+            .asSequence()
+            .filter { remainingValves.contains(it.second) }
+            .mapNotNull { (step, neighbor) ->
+                val neighborRemainingTime = remainingTime - step - 1
 
-        val originalGraph = input.parseValves()
-        val contractedGraph = originalGraph.contractGraph()
-
-        val valvesByRateComparator = compareByDescending<Valve> { it.rate }
-        val sortedValves = contractedGraph.values.toSortedSet(valvesByRateComparator)
-        val absoluteMax = sortedValves.maxRemaining(maxTimeSteps)
-
-        val queue = PriorityQueue<Step>(compareBy { absoluteMax - it.maxPossiblePressure })
-        queue.add(Step(0, maxTimeSteps, contractedGraph.getValue("AA"), remainingValves = sortedValves))
-
-
-        while (queue.isNotEmpty()) {
-            val currStep = queue.poll()
-            if (currStep.remainingTime <= 0) {
-                return currStep.pressureRelease
-            }
-
-            if (!currStep.openIt && currStep.remainingValves.contains(currStep.valve)) {
-                val nextRemainingTime = currStep.remainingTime - 1
-                val nextPressureRelease = currStep.pressureRelease + currStep.valve.rate * nextRemainingTime
-                val newRemaining = currStep.remainingValves.minus(currStep.valve).toSortedSet(valvesByRateComparator)
-                queue.add(currStep.copy(pressureRelease = nextPressureRelease, remainingTime = nextRemainingTime, openIt = true, remainingValves = newRemaining))
-            }
-
-            currStep.valve.neighbors
-                .map { Step(currStep.pressureRelease, currStep.remainingTime - it.first, it.second, currStep.remainingValves, false) }
-                .forEach { newStep ->
-                    queue.removeIf { it.valve == newStep.valve && it.remainingTime <= newStep.remainingTime && it.pressureRelease <= newStep.pressureRelease }
-                    queue.add(newStep)
+                if (neighborRemainingTime < 0) {
+                    null
+                } else {
+                    findPathOne(neighbor, pressureRelease + neighborRemainingTime * neighbor.rate, neighborRemainingTime, remainingValves.minus(neighbor))
                 }
-        }
+            } + listOf(pressureRelease)
 
-        return 0
+        return neighborPressures.max()
     }
 
-    fun calculatePart2Score(input: List<String>): Int {
+    fun calculatePart1Score(input: List<String>): Int {
+        val contractedGraph = input.parseGraph()
+        return findPathOne(contractedGraph.getValue("AA"), 0, 30, contractedGraph.values.toSet())
+    }
 
+
+    fun calculatePart2Score(input: List<String>): Int {
 
         return 0
     }
@@ -108,40 +80,54 @@ fun main() {
 }
 
 
-fun List<String>.parseValves(): Map<String, Valve> {
+fun List<String>.parseGraph(): Map<String, Valve> {
     val valvesStringMap = associate {
         val name = it.substringAfter("Valve ").substringBefore(" has flow")
         val rate = it.substringAfter("rate=").substringBefore("; tunnel").toInt()
         val neighbors = it.substringAfter("to valve").removePrefix("s ").trim().split(", ")
-        name to Triple(name, rate, neighbors)
+        name to Pair(rate, neighbors)
     }
 
-    val valves = valvesStringMap.values.map { Valve(it.first, it.second) }.associateBy { it.name }
-    valvesStringMap.forEach { (name, value) -> valves.getValue(name).neighbors = value.third.map { 1 to valves.getValue(it) } }
+    val valves = valvesStringMap
+        .mapValues { (name, valve) -> Valve(name, valve.first) }
+    val contractedGraph = valvesStringMap
+        .mapValues { (_, valve) -> valve.second }
+        .contractGraph()
 
-    return valves
+    val graph = contractedGraph.mapValues { (name, neighbors) ->
+        val valve = valves.getValue(name)
+        valve.neighbors = neighbors
+            .map { (steps, neighbor) -> steps to valves.getValue(neighbor) }
+            .filter { it.second.rate > 0 }
+        valve
+    }.filterValues { it.rate > 0 || it.name == "AA" }
+
+    return graph
 }
 
-fun Map<String, Valve>.contractGraph(): Map<String, Valve> {
-    val contracted = mapValues { (_, value) ->
-        val queue = mutableListOf(0 to value)
-        val visited = mutableSetOf<Valve>()
-        val allNeighbors = mutableListOf<Pair<Int, Valve>>()
+fun Map<String, List<String>>.contractGraph(): Map<String, List<Pair<Int, String>>> {
+    val graph = this.mapValues { (_, neighbors) -> neighbors.map { 1 to it } }
+
+    val contracted = graph.mapValues { (_, valve) ->
+        val queue = mutableListOf(0 to valve)
+        val visited = mutableSetOf<String>()
+        val allNeighbors = mutableListOf<Pair<Int, String>>()
 
         while (queue.isNotEmpty()) {
             val (currentSteps, currentValve) = queue.removeFirst()
 
-            currentValve.neighbors.forEach { (steps, nextValve) ->
-                if (!visited.contains(nextValve)) {
-                    visited.add(nextValve)
-                    queue.add((currentSteps + steps) to nextValve)
-                    allNeighbors.add((currentSteps + steps) to nextValve)
+            currentValve.forEach { (steps, neighborName) ->
+                if (!visited.contains(neighborName)) {
+                    visited.add(neighborName)
+                    val neighbor = graph.getValue(neighborName)
+                    queue.add((currentSteps + steps) to neighbor)
+                    allNeighbors.add((currentSteps + steps) to neighborName)
                 }
             }
         }
 
-        value.copy(neighbors = allNeighbors.filter { it.second.rate > 0 })
-    }.filter { it.value.rate > 0 || it.key == "AA" }
+        allNeighbors
+    }
 
     return contracted
 }
