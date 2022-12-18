@@ -107,7 +107,7 @@ data class GameState(val board: List<BooleanArray>, val rockX: Int, val rockY: I
             newBoard[y] = newBoard[y].clone()
 
             rockLine.forEachIndexed { x, blocked ->
-                newBoard[y][x + rockX] = blocked
+                newBoard[y][x + rockX] = board[y][x + rockX] || blocked
             }
         }
 
@@ -147,7 +147,7 @@ fun main() {
                 else -> error("unknown command $command")
             }
 
-            if (print) println("Game $idx: $newGameState")
+            if (print) println("Game $idx: command: $command $newGameState")
 
             val afterDownState = newGameState.moveDown()
             if (print) println("Game $idx Down: $afterDownState")
@@ -171,8 +171,6 @@ fun main() {
     val testInput = readInput("/day$day/Day${day}_test")
     val input = readInput("/day$day/Day${day}")
 
-
-    calculatePart1Score(testInput, 10, true)
 
     val part1TestPoints = calculatePart1Score(testInput, 2022)
     println("Part1 test points: $part1TestPoints")
