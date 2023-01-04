@@ -19,4 +19,7 @@ fun String.md5() = BigInteger(1, MessageDigest.getInstance("MD5").digest(toByteA
 
 fun List<String>.groupByBlankLine() = withPrefixSum { it == "" }
     .filter { it.second.isNotBlank() }
-    .groupBy({ it.first }) { it.second}
+    .groupBy({ it.first }) { it.second }
+
+
+fun <T> List<T>.getWrapped(idx: Int): T = this[idx.mod(this.size)]
