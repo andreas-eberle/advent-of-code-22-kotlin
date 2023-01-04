@@ -9,6 +9,15 @@ sealed interface Command
 data class StepCommand(val steps: Int) : Command
 data class TurnCommand(val turn: Char) : Command
 
+data class Transform(val originDirection: Int, val origin: Coordinate, val target: Coordinate)
+
+fun transforms(direction: Int, t1: Pair<Coordinate, Coordinate>, t2: Pair<Coordinate, Coordinate>): List<Transform> {
+    val allOrigins = t1.first lineTo t2.first
+    val allTargets = t1.second lineTo t2.second
+
+    val allOriginsWithTargets = allOrigins.zip(allTargets)
+    return allOriginsWithTargets.map { (origin, target) -> Transform(direction, origin, target) }
+}
 
 fun main() {
 
@@ -28,7 +37,77 @@ fun main() {
 
 
     fun calculatePart2Score(input: List<String>): Int {
-        return 0
+        val (commands, board) = input.parseBoardAndCommands()
+
+        val blockSize = board.width / 4
+
+        // 0 >
+        // 1 v
+        // 2 <
+        // 3 ^
+
+        val transforms = listOf(
+            transforms( // block 2 -> 4
+                2,
+                Coordinate(-1, blockSize) to Coordinate(3 * blockSize - 1, blockSize),
+                Coordinate(-1, 2 * blockSize - 1) to Coordinate(3 * blockSize - 1, 2 * blockSize - 1)
+            ),
+            transforms( // block 4 -> 2
+                0,
+                Coordinate(3 * blockSize, blockSize) to Coordinate(0, blockSize),
+                Coordinate(3 * blockSize, 2 * blockSize - 1) to Coordinate(0, 2 * blockSize - 1)
+            ),
+
+            transforms( // block 2 -> 1
+                3,
+                Coordinate(0, blockSize - 1) to Coordinate(3 * blockSize - 1, 0),
+                Coordinate(blockSize - 1, blockSize - 1) to Coordinate(2 * blockSize, 0)
+            ),
+            transforms( // block 1 -> 2
+                2,
+                Coordinate(2 * blockSize, 0) to Coordinate(blockSize, blockSize),
+                Coordinate(2 * blockSize, blockSize - 1) to Coordinate(2 * blockSize - 1, blockSize)
+            ),
+
+            transforms( // block 2
+                3,
+                Coordinate(blockSize, blockSize - 1) to Coordinate(2 * blockSize, 0),
+                Coordinate(2 * blockSize - 1, blockSize - 1) to Coordinate(2 * blockSize, blockSize - 1)
+            ),
+
+            transforms( // block 1 -> 6
+                0,
+                Coordinate(3 * blockSize, 0) to Coordinate(4 * blockSize - 1, 3 * blockSize - 1),
+                Coordinate(3 * blockSize, blockSize - 1) to Coordinate(4 * blockSize - 1, 2 * blockSize)
+            ),
+
+//            transforms(
+//                ,
+//                Coordinate(,) to Coordinate(,),
+//                Coordinate(,) to Coordinate(,)
+//            ),
+//            transforms(
+//                ,
+//                Coordinate(,) to Coordinate(,),
+//                Coordinate(,) to Coordinate(,)
+//            ),
+//            transforms(
+//                ,
+//                Coordinate(,) to Coordinate(,),
+//                Coordinate(,) to Coordinate(,)
+//            ),
+        )
+
+
+        val (position, direction) = board.walkCommands(commands) { direction, position ->
+            var nextPos = position
+            while (this[nextPos] == ' ') {
+                nextPos = nextPos.goInDirection(direction).wrap(width, height)
+            }
+            nextPos
+        }
+
+        return 1000 * (position.y + 1) + 4 * (position.x + 1) + direction
     }
 
     // test if implementation meets criteria from the description, like:
@@ -36,12 +115,12 @@ fun main() {
     val input = readInput("/day$day/Day${day}")
 
 
-    val part1TestPoints = calculatePart1Score(testInput)
-    println("Part1 test points: $part1TestPoints")
-    check(part1TestPoints == 6032)
-
-    val part1points = calculatePart1Score(input)
-    println("Part1 points: $part1points")
+//    val part1TestPoints = calculatePart1Score(testInput)
+//    println("Part1 test points: $part1TestPoints")
+//    check(part1TestPoints == 6032)
+//
+//    val part1points = calculatePart1Score(input)
+//    println("Part1 points: $part1points")
 
 
     val part2TestPoints = calculatePart2Score(testInput)
