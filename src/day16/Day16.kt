@@ -1,6 +1,8 @@
 package day16
 
+import combinations
 import readInput
+import java.lang.Integer.max
 
 const val day = "16"
 
@@ -29,32 +31,17 @@ data class Valve(val name: String, val rate: Int, var neighbors: List<Pair<Int, 
 
 fun main() {
 
-    fun findPathOne(currentValve: Valve, pressureRelease: Int, remainingTime: Int, remainingValves: Set<Valve>): Int {
-        val neighborPressures = currentValve.neighbors
-            .asSequence()
-            .filter { remainingValves.contains(it.second) }
-            .mapNotNull { (step, neighbor) ->
-                val neighborRemainingTime = remainingTime - step - 1
-
-                if (neighborRemainingTime < 0) {
-                    null
-                } else {
-                    findPathOne(neighbor, pressureRelease + neighborRemainingTime * neighbor.rate, neighborRemainingTime, remainingValves.minus(neighbor))
-                }
-            } + listOf(pressureRelease)
-
-        return neighborPressures.max()
-    }
-
     fun calculatePart1Score(input: List<String>): Int {
         val contractedGraph = input.parseGraph()
-        return findPathOne(contractedGraph.getValue("AA"), 0, 30, contractedGraph.values.toSet())
+        return findPathOne(contractedGraph.getValue("AA"), 30, 0, contractedGraph.keys)
     }
 
-
     fun calculatePart2Score(input: List<String>): Int {
+        val contractedGraph = input.parseGraph()
 
-        return 0
+        val startNode = contractedGraph.getValue("AA")
+
+        return findPathTwo(startNode, 26, startNode, 26, 0, contractedGraph.keys)
     }
 
     // test if implementation meets criteria from the description, like:
@@ -71,11 +58,11 @@ fun main() {
 
 
     val part2TestPoints = calculatePart2Score(testInput)
-    println("Part2 test points: \n$part2TestPoints")
+    println("Part2 test points: $part2TestPoints")
     check(part2TestPoints == 1707)
 
     val part2points = calculatePart2Score(input)
-    println("Part2 points: \n$part2points")
+    println("Part2 points: $part2points")
 
 }
 
@@ -130,4 +117,59 @@ fun Map<String, List<String>>.contractGraph(): Map<String, List<Pair<Int, String
     }
 
     return contracted
+}
+
+
+data class State(val valve: String, val pressureRelease: Int, val remainingTime: Int, val remainingValves: Set<String>)
+
+fun findPathOne(valve: Valve, remainingTime: Int, pressureRelease: Int, remainingValves: Set<String>): Int {
+    if(remainingValves.isEmpty()){
+        return pressureRelease
+    }
+
+    val neighborValues = valve.neighbors
+        .asSequence()
+        .filter { remainingValves.contains(it.second.name) }
+        .filter { (distance, _) -> distance < remainingTime }
+        .map { (distance, valve) ->
+            val newRemainingTime = remainingTime - distance - 1
+            findPathOne(valve, newRemainingTime, pressureRelease + valve.rate * newRemainingTime, remainingValves.minus(valve.name))
+        }
+
+    return neighborValues.maxOrNull() ?: pressureRelease
+}
+
+
+fun findPathTwo(v1: Valve, remainingTime1: Int, v2: Valve, remainingTime2: Int, pressureRelease: Int, remainingValves: Set<String>): Int {
+    val v1Neighbors = v1.neighbors.asSequence()
+        .filter { remainingValves.contains(it.second.name) }
+        .filter { (distance, _) -> distance < remainingTime1 }
+    val v2Neighbors = v2.neighbors.asSequence()
+        .filter { remainingValves.contains(it.second.name) }
+        .filter { (distance, _) -> distance < remainingTime2 }
+
+    val pairNeighborValues = combinations(v1Neighbors, v2Neighbors)
+        .filter { it.first.second.name != it.second.second.name }
+        .map { (step1, step2) ->
+            val newRemainingTime1 = remainingTime1 - step1.first - 1
+            val newRemainingTime2 = remainingTime2 - step2.first - 1
+            val newPressureRelease = pressureRelease + step1.second.rate * newRemainingTime1 + step2.second.rate * newRemainingTime2
+
+            findPathTwo(
+                step1.second, newRemainingTime1,
+                step2.second, newRemainingTime2,
+                newPressureRelease,
+                remainingValves.minus(step1.second.name).minus(step2.second.name)
+            )
+        }
+
+    val pairMax = pairNeighborValues.maxOrNull()
+    if (pairMax != null) {
+        return pairMax
+    }
+
+    return max(
+        findPathOne(v1, remainingTime1, pressureRelease, remainingValves),
+        findPathOne(v2, remainingTime2, pressureRelease, remainingValves)
+    )
 }

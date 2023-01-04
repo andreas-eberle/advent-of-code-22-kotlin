@@ -1,6 +1,7 @@
 package day24
 
 import Coordinate
+import bfs
 import readInput
 import java.util.*
 
@@ -102,23 +103,7 @@ data class State(val position: Coordinate, val stepCounter: Int) {
 fun main() {
 
     fun findPath(boardCache: BoardCache, startState: State, targetLocation: Coordinate): State? {
-        val queue: Queue<State> = LinkedList()
-        val open = mutableSetOf<State>()
-        queue.add(startState)
-
-        while (queue.isNotEmpty()) {
-            val state = queue.poll()
-            open.remove(state)
-
-            if (state.position == targetLocation) {
-                return state
-            }
-            val elements = state.nextPossibleStates(boardCache).filter { !open.contains(it) }
-            queue.addAll(elements)
-            open.addAll(elements)
-        }
-
-        return null
+        return bfs(startState, { position == targetLocation }) { nextPossibleStates(boardCache) }
     }
 
     fun List<String>.parseBoard(): Triple<Board, Coordinate, Coordinate> {

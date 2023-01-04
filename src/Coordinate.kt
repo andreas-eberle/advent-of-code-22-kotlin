@@ -1,6 +1,7 @@
 import java.lang.Integer.max
 import java.lang.Integer.min
 import kotlin.math.absoluteValue
+import kotlin.math.sign
 
 data class Coordinate(val x: Int, val y: Int) {
     constructor(x: String, y: String) : this(x.toInt(), y.toInt())
@@ -16,6 +17,21 @@ data class Coordinate(val x: Int, val y: Int) {
     fun wrap(width: Int, height: Int): Coordinate = Coordinate(x.mod(width), y.mod(height))
 
     operator fun rangeTo(o: Coordinate): List<Coordinate> = (this.y..o.y).flatMap { newY -> (this.x..o.x).map { newX -> Coordinate(newX, newY) } }
+
+    infix fun lineTo(o: Coordinate): List<Coordinate> {
+        val xSign = (o.x - x).sign
+        val ySign = (o.y - y).sign
+
+        val xSequence = if (xSign >= 0) x..o.x else x downTo o.x
+        val ySequence = if (ySign >= 0) y..o.y else y downTo o.y
+
+        return when {
+            xSign == 0 && ySign == 0 -> listOf(this)
+            xSign != 0 && ySign != 0 -> xSequence.zip(ySequence).map { (x, y) -> Coordinate(x, y) }
+            ySign == 0 -> xSequence.map { Coordinate(it, y) }
+            else -> ySequence.map { Coordinate(x, it) }
+        }
+    }
 
     fun isIn(width: Int, height: Int) = x in 0 until width && y in 0 until height
 }
